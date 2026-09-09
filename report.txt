@@ -1,0 +1,22 @@
+Library System - Summary Report
+Generated At : 2026-09-09 10:49:40 (+07:00)
+App Version  : 1.0
+Endianness   : Little-Endian
+
++--------+------------------+---------------+------------+---------------+----------+----------+
+| BookID   | Title              | Author          | Category     | Fine (THB/day)| Status   | Borrowed |
++--------+------------------+---------------+------------+---------------+----------+----------+
+| 1001     | Python 101       | Guido van Ros | Technology | 15.50         | Deleted  | Yes      |
+| 1001     | Python 101       | Guido van Ros | Technology | 15.50         | Active   | No       |
+| 1001     | Python 101       | Guido van Ros | Technology | 15.50         | Active   | No       |
+| 1001     | Python 101       | Guido van Ros | Technology | 15.50         | Active   | No       |
+| 1        | sd               | s             | 2          | 122.00        | Deleted  | No       |
+| 6767     | Test67_aigus     | kai waaa      | six seven  | 6.70          | Active   | Yes      |
++--------+------------------+---------------+------------+---------------+----------+----------+
+
+Summary (Active Only)
+- Total Records : 6
+- Active Books  : 4
+- Deleted Books : 2
+- Borrowed      : 1
+- Available     : 3
