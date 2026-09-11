@@ -2,97 +2,54 @@ import struct
 import os
 import datetime
 
-FORMAT = "<I 50s 30s 20s I f I I"
+# โครงสร้าง 105 Bytes (Fixed-length Record)
+# I   = Course ID (4 bytes)
+# 15s = Course Code (15 bytes)
+# 50s = Title (50 bytes)
+# 20s = Category (20 bytes)
+# I   = Credits (4 bytes)
+# f   = Tuition Fee (4 bytes)
+# I   = Status (4 bytes: 1=Active, 0=Deleted)
+# I   = Enrolled/Closed (4 bytes: 1=Full/Closed, 0=Available)
+FORMAT = "<I 15s 50s 20s I f I I"
 RECORD_SIZE = struct.calcsize(FORMAT)
-FILENAME = "books.dat"
+FILENAME = "courses.dat"
 
-def add_book():
-    """1) เพิ่มหนังสือใหม่"""
-    print("\n--- ➕ เพิ่มหนังสือใหม่ ---")
+def add_course():
+    """1) เพิ่มรายวิชาใหม่"""
+    print("\n--- ➕ เพิ่มรายวิชาใหม่ ---")
     try:
-        book_id = int(input("ป้อนรหัสหนังสือ (เช่น 1005): "))
-        title = input("ป้อนชื่อหนังสือ: ")
-        author = input("ป้อนชื่อผู้แต่ง: ")
-        category = input("ป้อนหมวดหมู่: ")
-        year = int(input("ป้อนปีที่พิมพ์: "))
-        fine_rate = float(input("ป้อนค่าปรับต่อวัน (บาท): "))
+        course_id = int(input("ป้อน Course ID (เช่น 1001): "))
+        code = input("ป้อนรหัสวิชา (เช่น CS101): ")
+        title = input("ป้อนชื่อรายวิชา: ")
+        category = input("ป้อนหมวดวิชา (เช่น Core, Elective, GenEd): ")
+        credits = int(input("ป้อนจำนวนหน่วยกิต: "))
+        fee = float(input("ป้อนค่าธรรมเนียมวิชา (บาท): "))
     except ValueError:
         print("❌ ป้อนข้อมูลผิดประเภท!\n")
         return
 
+    code_bytes = code.encode('utf-8').ljust(15, b'\x00')
     title_bytes = title.encode('utf-8').ljust(50, b'\x00')
-    author_bytes = author.encode('utf-8').ljust(30, b'\x00')
     cat_bytes = category.encode('utf-8').ljust(20, b'\x00')
 
-    packed_data = struct.pack(FORMAT, book_id, title_bytes, author_bytes, cat_bytes, year, fine_rate, 1, 0)
+    packed_data = struct.pack(FORMAT, course_id, code_bytes, title_bytes, cat_bytes, credits, fee, 1, 0)
 
     with open(FILENAME, "ab") as file:
         file.write(packed_data)
-    print(f"✅ บันทึกหนังสือ '{title}' เรียบร้อย!\n")
+    print(f"✅ บันทึกวิชา '{title}' เรียบร้อย!\n")
 
-def update_book():
-    """2) แก้ไขข้อมูลหนังสือ (กระโดดไปเขียนทับตำแหน่งเดิม)"""
-    print("\n--- ✏️ แก้ไขข้อมูลหนังสือ ---")
+def update_course():
+    """2) แก้ไขข้อมูลรายวิชา"""
+    print("\n--- ✏️ แก้ไขข้อมูลรายวิชา ---")
     if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
         print("ยังไม่มีข้อมูลในระบบ\n")
         return
 
     try:
-        search_id = int(input("ป้อนรหัสหนังสือที่ต้องการแก้ไข: "))
+        search_id = int(input("ป้อน Course ID ที่ต้องการแก้ไข: "))
     except ValueError:
-        print("❌ รหัสหนังสือต้องเป็นตัวเลขเท่านั้น!\n")
-        return
-
-    with open(FILENAME, "r+b") as file: # เปิดโหมด r+b เพื่ออ่านและเขียนทับได้
-        index = 0
-        found = False
-        while True:
-            offset = index * RECORD_SIZE
-            file.seek(offset)
-            data_read = file.read(RECORD_SIZE)
-            if not data_read:
-                break
-
-            unpacked = struct.unpack(FORMAT, data_read)
-            r_id, r_status = unpacked[0], unpacked[6]
-
-            if r_id == search_id and r_status == 1:
-                found = True
-                print(f"พบข้อมูลเดิม: {unpacked[1].rstrip(b'\\x00').decode('utf-8')}")
-                
-                new_title = input("ชื่อหนังสือใหม่ (กด Enter ถ้าไม่เปลี่ยน): ") or unpacked[1].rstrip(b'\x00').decode('utf-8')
-                new_fine = input("ค่าปรับใหม่ (กด Enter ถ้าไม่เปลี่ยน): ")
-                fine_val = float(new_fine) if new_fine else unpacked[5]
-                
-                # ถามสถานะการยืม
-                borrow_input = input("สถานะการยืม (0 = ว่าง, 1 = ยืมอยู่, กด Enter ถ้าไม่เปลี่ยน): ")
-                borrow_val = int(borrow_input) if borrow_input in ["0", "1"] else unpacked[7]
-
-                # แพ็กข้อมูลใหม่
-                t_bytes = new_title.encode('utf-8').ljust(50, b'\x00')
-                packed_new = struct.pack(FORMAT, r_id, t_bytes, unpacked[2], unpacked[3], unpacked[4], fine_val, 1, borrow_val)
-
-                # กระโดดกลับไปตำแหน่งเดิมแล้วเขียนทับ
-                file.seek(offset)
-                file.write(packed_new)
-                print("✅ แก้ไขข้อมูลเรียบร้อยแล้ว!\n")
-                break
-            index += 1
-
-        if not found:
-            print("❌ ไม่พบรหัสหนังสือนี้ หรือหนังสือถูกลบไปแล้ว\n")
-
-def delete_book():
-    """3) ลบหนังสือ (Soft Delete)"""
-    print("\n--- 🗑️ ลบหนังสือ ---")
-    if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
-        print("ยังไม่มีข้อมูลในระบบ\n")
-        return
-
-    try:
-        search_id = int(input("ป้อนรหัสหนังสือที่ต้องการลบ: "))
-    except ValueError:
-        print("❌ รหัสหนังสือต้องเป็นตัวเลขเท่านั้น!\n")
+        print("❌ ID ต้องเป็นตัวเลขเท่านั้น!\n")
         return
 
     with open(FILENAME, "r+b") as file:
@@ -108,22 +65,69 @@ def delete_book():
             unpacked = struct.unpack(FORMAT, data_read)
             if unpacked[0] == search_id and unpacked[6] == 1:
                 found = True
-                # เปลี่ยน status เป็น 0 (Deleted)
-                packed_del = struct.pack(FORMAT, unpacked[0], unpacked[1], unpacked[2], unpacked[3], unpacked[4], unpacked[5], 0, unpacked[7])
+                curr_title = unpacked[2].rstrip(b'\x00').decode('utf-8')
+                print(f"พบข้อมูลเดิม: {curr_title}")
+                
+                new_title = input("ชื่อวิชาใหม่ (กด Enter ถ้าไม่เปลี่ยน): ") or curr_title
+                new_fee_str = input("ค่าธรรมเนียมใหม่ (กด Enter ถ้าไม่เปลี่ยน): ")
+                new_fee = float(new_fee_str) if new_fee_str else unpacked[5]
+                
+                enrolled_str = input("สถานะการลงทะเบียน (0 = เปิดรับ, 1 = เต็ม/ปิดรับ, กด Enter ถ้าไม่เปลี่ยน): ")
+                enrolled_val = int(enrolled_str) if enrolled_str in ["0", "1"] else unpacked[7]
+
+                t_bytes = new_title.encode('utf-8').ljust(50, b'\x00')
+                packed_new = struct.pack(FORMAT, unpacked[0], unpacked[1], t_bytes, unpacked[3], unpacked[4], new_fee, 1, enrolled_val)
+
                 file.seek(offset)
-                file.write(packed_del)
-                print(f"✅ ลบหนังสือรหัส {search_id} เรียบร้อยแล้ว (Soft Delete)!\n")
+                file.write(packed_new)
+                print("✅ แก้ไขข้อมูลเรียบร้อยแล้ว!\n")
                 break
             index += 1
 
         if not found:
-            print("❌ ไม่พบรหัสหนังสือนี้\n")
+            print("❌ ไม่พบวิชานี้ หรือถูกลบไปแล้ว\n")
 
-def view_all_books():
-    """4) ดูหนังสือทั้งหมด"""
-    print("\n--- 📖 รายชื่อหนังสือทั้งหมดในระบบ ---")
+def delete_course():
+    """3) ลบรายวิชา (Soft Delete)"""
+    print("\n--- 🗑️ ลบรายวิชา ---")
     if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
-        print("ยังไม่มีข้อมูลหนังสือในไฟล์\n")
+        print("ยังไม่มีข้อมูลในระบบ\n")
+        return
+
+    try:
+        search_id = int(input("ป้อน Course ID ที่ต้องการลบ: "))
+    except ValueError:
+        print("❌ ID ต้องเป็นตัวเลขเท่านั้น!\n")
+        return
+
+    with open(FILENAME, "r+b") as file:
+        index = 0
+        found = False
+        while True:
+            offset = index * RECORD_SIZE
+            file.seek(offset)
+            data_read = file.read(RECORD_SIZE)
+            if not data_read:
+                break
+
+            unpacked = struct.unpack(FORMAT, data_read)
+            if unpacked[0] == search_id and unpacked[6] == 1:
+                found = True
+                packed_del = struct.pack(FORMAT, unpacked[0], unpacked[1], unpacked[2], unpacked[3], unpacked[4], unpacked[5], 0, unpacked[7])
+                file.seek(offset)
+                file.write(packed_del)
+                print(f"✅ ลบวิชารหัส {search_id} เรียบร้อยแล้ว (Soft Delete)!\n")
+                break
+            index += 1
+
+        if not found:
+            print("❌ ไม่พบวิชานี้\n")
+
+def view_all_courses():
+    """4) ดูรายวิชาทั้งหมด"""
+    print("\n--- 📖 รายชื่อรายวิชาทั้งหมด ---")
+    if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
+        print("ยังไม่มีข้อมูลในระบบ\n")
         return
 
     with open(FILENAME, "rb") as file:
@@ -134,100 +138,120 @@ def view_all_books():
                 break
             
             unpacked = struct.unpack(FORMAT, data_read)
-            r_id = unpacked[0]
-            r_title = unpacked[1].rstrip(b'\x00').decode('utf-8')
-            r_author = unpacked[2].rstrip(b'\x00').decode('utf-8')
-            r_cat = unpacked[3].rstrip(b'\x00').decode('utf-8')
-            r_year = unpacked[4]
-            r_fine = unpacked[5]
-            r_status = unpacked[6]
-            r_borrowed = "ยืมอยู่" if unpacked[7] == 1 else "ว่าง"
+            if unpacked[6] == 1: # แสดงเฉพาะ Active
+                r_id = unpacked[0]
+                r_code = unpacked[1].rstrip(b'\x00').decode('utf-8')
+                r_title = unpacked[2].rstrip(b'\x00').decode('utf-8')
+                r_cat = unpacked[3].rstrip(b'\x00').decode('utf-8')
+                r_credits = unpacked[4]
+                r_fee = unpacked[5]
+                r_enrolled = "เต็ม/ปิดรับ" if unpacked[7] == 1 else "เปิดรับ"
 
-            if r_status == 1:
-                print(f"[{count}] รหัส: {r_id} | ชื่อ: {r_title} | ผู้แต่ง: {r_author} | หมวด: {r_cat} ({r_year}) | ค่าปรับ: {r_fine:.2f} บาท/วัน | สถานะ: {r_borrowed}")
+                print(f"[{count}] ID: {r_id} | รหัส: {r_code} | วิชา: {r_title} | หมวด: {r_cat} | {r_credits} หน่วยกิต | ค่าวิชา: {r_fee:.2f} บาท | สถานะ: {r_enrolled}")
                 count += 1
     print()
 
 def generate_report():
-    """5) สร้างไฟล์รายงาน report.txt"""
+    """5) สร้างไฟล์รายงาน report.txt ตามรูปแบบของรุ่นพี่"""
     print("\n--- 📄 กำลังสร้างไฟล์รายงาน report.txt ---")
     if not os.path.exists(FILENAME):
         print("❌ ไม่พบไฟล์ข้อมูล\n")
         return
 
-    books = []
+    courses = []
     with open(FILENAME, "rb") as file:
         while True:
             data = file.read(RECORD_SIZE)
             if not data:
                 break
-            b = struct.unpack(FORMAT, data)
-            books.append({
-                "id": b[0],
-                "title": b[1].rstrip(b'\x00').decode('utf-8'),
-                "author": b[2].rstrip(b'\x00').decode('utf-8'),
-                "cat": b[3].rstrip(b'\x00').decode('utf-8'),
-                "year": b[4],
-                "fine": b[5],
-                "status": b[6],
-                "borrowed": b[7]
+            c = struct.unpack(FORMAT, data)
+            courses.append({
+                "id": c[0],
+                "code": c[1].rstrip(b'\x00').decode('utf-8'),
+                "title": c[2].rstrip(b'\x00').decode('utf-8'),
+                "cat": c[3].rstrip(b'\x00').decode('utf-8'),
+                "credits": c[4],
+                "fee": c[5],
+                "status": c[6],
+                "enrolled": c[7]
             })
 
-    total = len(books)
-    active_books = [b for b in books if b["status"] == 1]
-    deleted = total - len(active_books)
-    borrowed = len([b for b in active_books if b["borrowed"] == 1])
-    available = len(active_books) - borrowed
+    total_records = len(courses)
+    active_courses = [c for c in courses if c["status"] == 1]
+    deleted_count = total_records - len(active_courses)
+    enrolled_count = len([c for c in active_courses if c["enrolled"] == 1])
+    available_count = len(active_courses) - enrolled_count
 
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S (+07:00)")
+    # คำนวณ Statistics สำหรับ Active courses
+    fees = [c["fee"] for c in active_courses] if active_courses else [0.0]
+    min_fee = min(fees)
+    max_fee = max(fees)
+    avg_fee = sum(fees) / len(fees) if fees else 0.0
+
+    # จัดกลุ่มตาม หมวดวิชา (Category)
+    cat_counts = {}
+    for c in active_courses:
+        cat_counts[c["cat"]] = cat_counts.get(c["cat"], 0) + 1
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     with open("report.txt", "w", encoding="utf-8") as f:
-        f.write("Library System - Summary Report\n")
+        f.write("Course Registration System - Summary Report (Sample)\n")
         f.write(f"Generated At : {now}\n")
         f.write("App Version  : 1.0\n")
-        f.write("Endianness   : Little-Endian\n\n")
+        f.write("Endianness   : Little-Endian\n")
+        f.write("Encoding     : UTF-8 (fixed-length)\n\n")
 
-        sep = "+" + "-"*8 + "+" + "-"*18 + "+" + "-"*15 + "+" + "-"*12 + "+" + "-"*15 + "+" + "-"*10 + "+" + "-"*10 + "+\n"
+        sep = "-" * 85 + "\n"
         f.write(sep)
-        f.write("| BookID   | Title              | Author          | Category     | Fine (THB/day)| Status   | Borrowed |\n")
+        f.write(f"| {'CourseID':<8} | {'Code':<10} | {'Title':<20} | {'Category':<12} | {'Credits':<7} | {'Fee (THB)':<10} | {'Status':<8} | {'Enrolled':<8} |\n")
         f.write(sep)
 
-        for b in books:
-            st = "Active" if b["status"] == 1 else "Deleted"
-            bw = "Yes" if b["borrowed"] == 1 else "No"
-            f.write(f"| {b['id']:<8} | {b['title'][:16]:<16} | {b['author'][:13]:<13} | {b['cat'][:10]:<10} | {b['fine']:<13.2f} | {st:<8} | {bw:<8} |\n")
+        for c in courses:
+            st = "Active" if c["status"] == 1 else "Deleted"
+            en = "Yes" if c["enrolled"] == 1 else "No"
+            f.write(f"| {c['id']:<8} | {c['code'][:10]:<10} | {c['title'][:20]:<20} | {c['cat'][:12]:<12} | {c['credits']:<7} | {c['fee']:<10.2f} | {st:<8} | {en:<8} |\n")
         f.write(sep + "\n")
 
-        f.write(f"Summary (Active Only)\n")
-        f.write(f"- Total Records : {total}\n")
-        f.write(f"- Active Books  : {len(active_books)}\n")
-        f.write(f"- Deleted Books : {deleted}\n")
-        f.write(f"- Borrowed      : {borrowed}\n")
-        f.write(f"- Available     : {available}\n")
+        f.write("Summary (เฉพาะสถานะ Active)\n")
+        f.write(f"- Total Courses (records) : {total_records}\n")
+        f.write(f"- Active Courses          : {len(active_courses)}\n")
+        f.write(f"- Deleted Courses         : {deleted_count}\n")
+        f.write(f"- Currently Enrolled/Full : {enrolled_count}\n")
+        f.write(f"- Available Now           : {available_count}\n\n")
 
-    print("✅ สร้างไฟล์ report.txt เรียบร้อยแล้ว!\n")
+        f.write("Fee Statistics (THB, Active only)\n")
+        f.write(f"- Min : {min_fee:.2f}\n")
+        f.write(f"- Max : {max_fee:.2f}\n")
+        f.write(f"- Avg : {avg_fee:.2f}\n\n")
+
+        f.write("Courses by Category (Active only)\n")
+        for cat_name, count in cat_counts.items():
+            f.write(f"- {cat_name} : {count}\n")
+
+    print("✅ สร้างไฟล์ report.txt ตามรูปแบบตัวอย่างเรียบร้อยแล้ว!\n")
 
 def main_menu():
     while True:
-        print("==============================")
-        print(" 📚 ระบบยืม-คืนหนังสือ (CLI) ")
-        print("==============================")
-        print("1) เพิ่มหนังสือ (Add)")
-        print("2) แก้ไขหนังสือ (Update)")
-        print("3) ลบหนังสือ (Delete)")
-        print("4) ดูหนังสือทั้งหมด (View)")
+        print("==========================================")
+        print(" 🎓 ระบบลงทะเบียนเรียน/รายวิชา (CLI) ")
+        print("==========================================")
+        print("1) เพิ่มรายวิชา (Add Course)")
+        print("2) แก้ไขรายวิชา (Update Course)")
+        print("3) ลบรายวิชา (Delete Course)")
+        print("4) ดูรายวิชาทั้งหมด (View All)")
         print("5) สร้างรายงาน (Generate Report)")
         print("0) ออกจากโปรแกรม (Exit)")
         choice = input("เลือกเมนู (0-5): ").strip()
 
         if choice == "1":
-            add_book()
+            add_course()
         elif choice == "2":
-            update_book()
+            update_course()
         elif choice == "3":
-            delete_book()
+            delete_course()
         elif choice == "4":
-            view_all_books()
+            view_all_courses()
         elif choice == "5":
             generate_report()
         elif choice == "0":
