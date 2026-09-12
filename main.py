@@ -2,22 +2,13 @@ import struct
 import os
 import datetime
 
-# โครงสร้าง 105 Bytes (Fixed-length Record)
-# I   = Course ID (4 bytes)
-# 15s = Course Code (15 bytes)
-# 50s = Title (50 bytes)
-# 20s = Category (20 bytes)
-# I   = Credits (4 bytes)
-# f   = Tuition Fee (4 bytes)
-# I   = Status (4 bytes: 1=Active, 0=Deleted)
-# I   = Enrolled/Closed (4 bytes: 1=Full/Closed, 0=Available)
 FORMAT = "<I 15s 50s 20s I f I I"
 RECORD_SIZE = struct.calcsize(FORMAT)
 FILENAME = "courses.dat"
 
 def add_course():
     """1) เพิ่มรายวิชาใหม่"""
-    print("\n--- ➕ เพิ่มรายวิชาใหม่ ---")
+    print("\n--- เพิ่มรายวิชาใหม่ ---")
     try:
         course_id = int(input("ป้อน Course ID (เช่น 1001): "))
         code = input("ป้อนรหัสวิชา (เช่น CS101): ")
@@ -26,7 +17,7 @@ def add_course():
         credits = int(input("ป้อนจำนวนหน่วยกิต: "))
         fee = float(input("ป้อนค่าธรรมเนียมวิชา (บาท): "))
     except ValueError:
-        print("❌ ป้อนข้อมูลผิดประเภท!\n")
+        print("ป้อนข้อมูลผิดประเภท!\n")
         return
 
     code_bytes = code.encode('utf-8').ljust(15, b'\x00')
@@ -37,11 +28,11 @@ def add_course():
 
     with open(FILENAME, "ab") as file:
         file.write(packed_data)
-    print(f"✅ บันทึกวิชา '{title}' เรียบร้อย!\n")
+    print(f"บันทึกวิชา '{title}' เรียบร้อย!\n")
 
 def update_course():
     """2) แก้ไขข้อมูลรายวิชา"""
-    print("\n--- ✏️ แก้ไขข้อมูลรายวิชา ---")
+    print("\n--- แก้ไขข้อมูลรายวิชา ---")
     if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
         print("ยังไม่มีข้อมูลในระบบ\n")
         return
@@ -49,7 +40,7 @@ def update_course():
     try:
         search_id = int(input("ป้อน Course ID ที่ต้องการแก้ไข: "))
     except ValueError:
-        print("❌ ID ต้องเป็นตัวเลขเท่านั้น!\n")
+        print("ID ต้องเป็นตัวเลขเท่านั้น!\n")
         return
 
     with open(FILENAME, "r+b") as file:
@@ -80,16 +71,16 @@ def update_course():
 
                 file.seek(offset)
                 file.write(packed_new)
-                print("✅ แก้ไขข้อมูลเรียบร้อยแล้ว!\n")
+                print("แก้ไขข้อมูลเรียบร้อยแล้ว!\n")
                 break
             index += 1
 
         if not found:
-            print("❌ ไม่พบวิชานี้ หรือถูกลบไปแล้ว\n")
+            print("ไม่พบวิชานี้ หรือถูกลบไปแล้ว\n")
 
 def delete_course():
     """3) ลบรายวิชา (Soft Delete)"""
-    print("\n--- 🗑️ ลบรายวิชา ---")
+    print("\n--- ลบรายวิชา ---")
     if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
         print("ยังไม่มีข้อมูลในระบบ\n")
         return
@@ -97,7 +88,7 @@ def delete_course():
     try:
         search_id = int(input("ป้อน Course ID ที่ต้องการลบ: "))
     except ValueError:
-        print("❌ ID ต้องเป็นตัวเลขเท่านั้น!\n")
+        print("ID ต้องเป็นตัวเลขเท่านั้น!\n")
         return
 
     with open(FILENAME, "r+b") as file:
@@ -116,16 +107,16 @@ def delete_course():
                 packed_del = struct.pack(FORMAT, unpacked[0], unpacked[1], unpacked[2], unpacked[3], unpacked[4], unpacked[5], 0, unpacked[7])
                 file.seek(offset)
                 file.write(packed_del)
-                print(f"✅ ลบวิชารหัส {search_id} เรียบร้อยแล้ว (Soft Delete)!\n")
+                print(f"ลบวิชารหัส {search_id} เรียบร้อยแล้ว (Soft Delete)!\n")
                 break
             index += 1
 
         if not found:
-            print("❌ ไม่พบวิชานี้\n")
+            print("ไม่พบวิชานี้\n")
 
 def view_all_courses():
     """4) ดูรายวิชาทั้งหมด"""
-    print("\n--- 📖 รายชื่อรายวิชาทั้งหมด ---")
+    print("\n--- รายชื่อรายวิชาทั้งหมด ---")
     if not os.path.exists(FILENAME) or os.path.getsize(FILENAME) == 0:
         print("ยังไม่มีข้อมูลในระบบ\n")
         return
@@ -153,9 +144,9 @@ def view_all_courses():
 
 def generate_report():
     """5) สร้างไฟล์รายงาน report.txt ตามรูปแบบของรุ่นพี่"""
-    print("\n--- 📄 กำลังสร้างไฟล์รายงาน report.txt ---")
+    print("\n--- กำลังสร้างไฟล์รายงาน report.txt ---")
     if not os.path.exists(FILENAME):
-        print("❌ ไม่พบไฟล์ข้อมูล\n")
+        print("ไม่พบไฟล์ข้อมูล\n")
         return
 
     courses = []
@@ -229,12 +220,12 @@ def generate_report():
         for cat_name, count in cat_counts.items():
             f.write(f"- {cat_name} : {count}\n")
 
-    print("✅ สร้างไฟล์ report.txt ตามรูปแบบตัวอย่างเรียบร้อยแล้ว!\n")
+    print(" สร้างไฟล์ report.txt ตามรูปแบบตัวอย่างเรียบร้อยแล้ว!\n")
 
 def main_menu():
     while True:
         print("==========================================")
-        print(" 🎓 ระบบลงทะเบียนเรียน/รายวิชา (CLI) ")
+        print(" ระบบลงทะเบียนเรียน/รายวิชา (CLI) ")
         print("==========================================")
         print("1) เพิ่มรายวิชา (Add Course)")
         print("2) แก้ไขรายวิชา (Update Course)")
@@ -255,10 +246,10 @@ def main_menu():
         elif choice == "5":
             generate_report()
         elif choice == "0":
-            print("ปิดโปรแกรมเรียบร้อยแล้ว 👋")
+            print("ปิดโปรแกรมเรียบร้อยแล้ว")
             break
         else:
-            print("❌ เลือกเมนูไม่ถูกต้อง ลองใหม่อีกครั้ง\n")
+            print("เลือกเมนูไม่ถูกต้อง ลองใหม่อีกครั้ง\n")
 
 if __name__ == "__main__":
     main_menu()

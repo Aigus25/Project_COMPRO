@@ -1,5 +1,5 @@
 Course Registration System - Summary Report (Sample)
-Generated At : 2026-09-09 11:21:44
+Generated At : 2026-09-12 19:24:15
 App Version  : 1.0
 Endianness   : Little-Endian
 Encoding     : UTF-8 (fixed-length)
@@ -10,15 +10,17 @@ Encoding     : UTF-8 (fixed-length)
 | 1001     | CS101      | Computer Progarm     | Core         | 3       | 0.00       | Active   | No       |
 | 1002     | cs102      | Data Structures      | Core         | 3       | 0.00       | Active   | No       |
 | 2001     | GEN201     | English 1            | GenEd        | 3       | 0.00       | Active   | Yes      |
-| 3001     | SP101      | TABLE TENNIS         | SOPT         | 2       | 0.00       | Active   | No       |
+| 3001     | SP101      | TABLE TENNIS         | SOPT         | 2       | 0.00       | Deleted  | No       |
+| 3001     | sp101      | TABLE TENNIS         | SPORT        | 0       | 0.00       | Active   | No       |
+| 4001     | E-SPROT    | E-SPROT101           | SPORT        | 1       | 0.00       | Active   | No       |
 -------------------------------------------------------------------------------------
 
 Summary (เฉพาะสถานะ Active)
-- Total Courses (records) : 4
-- Active Courses          : 4
-- Deleted Courses         : 0
+- Total Courses (records) : 6
+- Active Courses          : 5
+- Deleted Courses         : 1
 - Currently Enrolled/Full : 1
-- Available Now           : 3
+- Available Now           : 4
 
 Fee Statistics (THB, Active only)
 - Min : 0.00
@@ -28,4 +30,4 @@ Fee Statistics (THB, Active only)
 Courses by Category (Active only)
 - Core : 2
 - GenEd : 1
-- SOPT : 1
+- SPORT : 2
