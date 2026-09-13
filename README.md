@@ -1,98 +1,146 @@
 # 🎓 Course Registration System (CLI Binary Engine)
 
-> **Private Master Repository** — ระบบจัดการข้อมูลรายวิชา การลงทะเบียนเรียน และนักศึกษา แบบ Command Line Interface (CLI) ที่ประมวลผลผ่านไฟล์ไบนารีชนิด Fixed-length Record 3 ไฟล์ ด้วยภาษา Python (`struct` module)
+> **Private Master Repository** — ระบบจัดการข้อมูลนักศึกษา, รายวิชา และการลงทะเบียนเรียนแบบ Command Line Interface (CLI) ที่ประมวลผลข้อมูลผ่านระบบไฟล์ไบนารีชนิด Fixed-length Record จำนวน 3 ไฟล์ ด้วยภาษา Python (`struct` module)
 
 ---
 
 ## 👨‍💻 Project Information & Ownership
 * **Developer:** Thitiwat Thaicharoen (AIGUS__) & Project Team
 * **Course:** Computer Programming Project
-* **Architecture:** Multi-Binary Fixed-Length File Storage (`.dat`)
+* **Architecture:** Fixed-Length Binary Storage (3 Files, Little-Endian)
 * **Access Level:** Confidential / Internal Team Only
 
 ---
 
 ## 📌 System Features (ฟีเจอร์หลัก)
-1. **👨‍🎓 Student Management:** เพิ่ม แก้ไข ลบ (Soft Delete) และดูข้อมูลนักศึกษา บันทึกลง `students.dat`
-2. **📚 Course Management:** เพิ่ม แก้ไข ลบ (Soft Delete) และดูข้อมูลรายวิชา บันทึกลง `courses.dat`
-3. **📝 Enrollment System:** ระบบลงทะเบียนเรียน เชื่อมโยง ID นักศึกษากับรายวิชา บันทึกลง `enrollments.dat`
-4. **🔍 Advanced View & Analytics:** ระบบดูข้อมูลแบบ 4 โหมด (ดูทั้งหมด, ดูรายการเดียว, กรองคำค้นหา, สถิติสรุป ค่าธรรมเนียม Min/Max/Avg)
-5. **✏️ In-Place Binary Update & Soft Delete:** แก้ไขข้อมูลแบบกระโดดทับตำแหน่งเดิมด้วย `seek()` และลบข้อมูลด้วยการเปลี่ยน Flag (`status = 0`) เพื่อคงโครงสร้างไบนารี
-6. **📄 Auto Report & Sync:** สรุปสถิติข้อมูล Free Slots และประวัติการทำงานลงไฟล์ `report.txt` และ `operations.log` อัตโนมัติเมื่อปิดโปรแกรม
+
+ระบบแบ่งการทำงานออกเป็น 3 module หลัก ตามไฟล์ข้อมูล:
+
+### 1) 📚 Course Management (`courses.dat`)
+- **➕ Add:** เพิ่มรายวิชาใหม่ เข้ารหัสแบบ UTF-8 บันทึกลงไบนารี
+- **✏️ Update (In-Place):** แก้ไขข้อมูลรายวิชาแบบกระโดดทับตำแหน่งเดิมด้วย `seek()` โดยไม่ต้องสร้างไฟล์ใหม่
+- **🗑️ Soft Delete:** ลบรายวิชาแบบเปลี่ยน Flag สถานะ (`status = 0`) เพื่อคงความสมบูรณ์ของโครงสร้างไบนารี
+- **📖 View:** ดูทั้งหมด / ดูรายการเดียว (ตาม ID) / ดูแบบกรอง (ตามหมวดวิชา) / สถิติโดยสรุป (Min/Max/Avg Fee)
+
+### 2) 🧑‍🎓 Student Management (`students.dat`)
+- Add / Update / Soft Delete / View (ทั้งหมด, รายการเดียว, กรองตามสาขา, สถิติ)
+- กันการเพิ่ม Student ID ซ้ำกับรายการที่ยัง Active อยู่
+
+### 3) 📝 Enrollment Management (`enrollments.dat`)
+- **ลงทะเบียน:** ผูกนักศึกษาเข้ากับรายวิชา พร้อมตรวจสอบว่านักศึกษา/วิชามีอยู่จริง วิชายังไม่เต็ม และไม่ได้ลงทะเบียนซ้ำวิชาเดิม
+- **ยกเลิกการลงทะเบียน:** Soft Delete (`status = 0`)
+- **View:** ดูทั้งหมด / ดูตาม Student ID / ดูตาม Course ID / สถิติโดยสรุป
+
+### 4) 📄 Report Generator (`report.txt`)
+สร้างรายงานสรุปที่รวมข้อมูลจากทั้ง 3 ไฟล์ ประกอบด้วย:
+- ตารางรายวิชา / นักศึกษา / การลงทะเบียนทั้งหมด (รวม Active และ Deleted)
+- สรุปจำนวน Active/Deleted ของแต่ละไฟล์
+- **Free Slots** — จำนวน record ที่ถูก soft-delete แล้ว (พื้นที่ที่เหลือ)
+- สถิติค่าธรรมเนียม (Min/Max/Avg) และจำนวนวิชาแยกตามหมวดหมู่
+- **ประวัติการทำงานล่าสุด** (อ่านจาก `operations.log`)
+
+### 5) 🔒 Safe Exit
+เมื่อเลือกออกจากโปรแกรม ระบบจะ `fsync()` ไฟล์ไบนารีทั้ง 3 ไฟล์ และสร้างรายงานสรุปให้อัตโนมัติก่อนปิดโปรแกรมทุกครั้ง
 
 ---
 
-## 🛠️ Data Dictionary (Binary Record Structures)
+## 🛠️ Data Dictionary
 
-ระบบใช้การจัดเก็บแบบ Little-Endian (`<`) โดยกำหนดขนาดไบต์คงที่ทุกไฟล์:
+การจัดเก็บข้อมูลทุกไฟล์ใช้โครงสร้างแบบ Little-Endian (`<`) และ Fixed-length Record
 
-### 1. `courses.dat` (105-Byte Structure)
-* **Struct Format String:** `"<I 15s 50s 20s I f I I"` (ขนาดรวม 105 ไบต์)
+### `students.dat` — 107 ไบต์/record
 
-| Field Name | Format | Data Type | Size (Bytes) | Description & Padding |
-| :--- | :---: | :--- | :---: | :--- |
-| **course_id** | `I` | Unsigned Int | 4 | รหัสไอดีประจำวิชา (e.g. `1001`) |
-| **code** | `15s` | String (Bytes) | 15 | รหัสวิชา (UTF-8, Padded with `\x00`) |
-| **title** | `50s` | String (Bytes) | 50 | ชื่อรายวิชา (UTF-8, Padded with `\x00`) |
-| **category** | `20s` | String (Bytes) | 20 | หมวดหมู่วิชา (UTF-8, Padded with `\x00`) |
-| **credits** | `I` | Unsigned Int | 4 | จำนวนหน่วยกิต |
-| **fee** | `f` | Single Float | 4 | ค่าธรรมเนียมการเรียน (บาท) |
-| **status** | `I` | Unsigned Int | 4 | `1` = Active, `0` = Deleted (Soft Delete) |
-| **enrolled** | `I` | Unsigned Int | 4 | `0` = Open/Available, `1` = Full/Closed |
+| Field | Format | Size (Bytes) | Description |
+| :--- | :---: | :---: | :--- |
+| **student_id** | `I` | 4 | รหัสไอดีนักศึกษา |
+| **student_code** | `15s` | 15 | รหัสนักศึกษา (UTF-8, Padded) |
+| **name** | `50s` | 50 | ชื่อ-สกุล (UTF-8, Padded) |
+| **major** | `20s` | 20 | สาขาวิชา (UTF-8, Padded) |
+| **year** | `I` | 4 | ชั้นปี |
+| **status** | `I` | 4 | `1` = Active, `0` = Deleted |
 
-### 2. `students.dat` (97-Byte Structure)
-* **Struct Format String:** `"<Q 15s 50s 20s I I"` (ขนาดรวม 97 ไบต์)
+> **Struct Format String:** `"<I 15s 50s 20s I I"`
 
-| Field Name | Format | Data Type | Size (Bytes) | Description & Padding |
-| :--- | :---: | :--- | :---: | :--- |
-| **student_id** | `Q` | Unsigned Long Long | 8 | รหัสนักศึกษา 13 หลัก (e.g. `6906022610029`) |
-| **code** | `15s` | String (Bytes) | 15 | รหัสอ้างอิงนักศึกษา (UTF-8) |
-| **name** | `50s` | String (Bytes) | 50 | ชื่อ-นามสกุล (UTF-8) |
-| **major** | `20s` | String (Bytes) | 20 | สาขาวิชา (UTF-8) |
-| **year** | `I` | Unsigned Int | 4 | ชั้นปี (1-4) |
-| **status** | `I` | Unsigned Int | 4 | `1` = Active, `0` = Deleted (Soft Delete) |
+### `courses.dat` — 105 ไบต์/record
 
-### 3. `enrollments.dat` (36-Byte Structure)
-* **Struct Format String:** `"<I Q I 20s I"` (ขนาดรวม 36 ไบต์)
+| Field | Format | Size (Bytes) | Description |
+| :--- | :---: | :---: | :--- |
+| **course_id** | `I` | 4 | รหัสไอดีประจำวิชา (e.g. `1001`) |
+| **code** | `15s` | 15 | รหัสวิชา (UTF-8, Padded) |
+| **title** | `50s` | 50 | ชื่อรายวิชา (UTF-8, Padded) |
+| **category** | `20s` | 20 | หมวดหมู่วิชา (UTF-8, Padded) |
+| **credits** | `I` | 4 | จำนวนหน่วยกิต |
+| **fee** | `f` | 4 | ค่าธรรมเนียมการเรียน (บาท) |
+| **status** | `I` | 4 | `1` = Active, `0` = Deleted (Soft Delete) |
+| **enrolled** | `I` | 4 | `0` = Available, `1` = Full/Closed |
 
-| Field Name | Format | Data Type | Size (Bytes) | Description & Padding |
-| :--- | :---: | :--- | :---: | :--- |
-| **enroll_id** | `I` | Unsigned Int | 4 | รหัสการลงทะเบียน |
-| **student_id** | `Q` | Unsigned Long Long | 8 | รหัสนักศึกษาที่ลงทะเบียน |
-| **course_id** | `I` | Unsigned Int | 4 | รหัสวิชาที่ลงทะเบียน |
-| **enroll_date**| `20s` | String (Bytes) | 20 | วันเวลาที่ลงทะเบียน (`YYYY-MM-DD HH:MM:SS`) |
-| **status** | `I` | Unsigned Int | 4 | `1` = Active, `0` = Cancelled |
+> **Struct Format String:** `"<I 15s 50s 20s I f I I"`
+> **Total Size Formula:** `4 + 15 + 50 + 20 + 4 + 4 + 4 + 4 = 105 Bytes`
+
+### `enrollments.dat` — 36 ไบต์/record
+
+| Field | Format | Size (Bytes) | Description |
+| :--- | :---: | :---: | :--- |
+| **enroll_id** | `I` | 4 | รหัสไอดีการลงทะเบียน |
+| **student_id** | `I` | 4 | อ้างอิงไปยัง `students.dat` |
+| **course_id** | `I` | 4 | อ้างอิงไปยัง `courses.dat` |
+| **enroll_date** | `20s` | 20 | วันที่ลงทะเบียน (UTF-8, `YYYY-MM-DD HH:MM:SS`) |
+| **status** | `I` | 4 | `1` = ลงทะเบียนอยู่, `0` = ยกเลิก |
+
+> **Struct Format String:** `"<I I I 20s I"`
 
 ---
 
 ## 📐 Binary Random Access Concept
 
-เนื่องจากทุก Record มีขนาดคงที่ โปรแกรมคำนวณตำแหน่ง (Offset) ในไฟล์ไบนารีเพื่ออ่านหรือเขียนทับได้ทันที:
+เนื่องจากทุก Record ในแต่ละไฟล์มีขนาดคงที่เท่ากันหมด โปรแกรมสามารถคำนวณตำแหน่ง (Offset) ในไฟล์เพื่ออ่านหรือเขียนทับได้ทันทีโดยใช้สูตร:
 
-$$\text{Offset} = \text{Record Index} \times \text{RECORD\_SIZE}$$
+$$\text{Offset} = \text{Record Index} \times \text{Record Size}$$
 
 ```text
-[ Record 0: 0 - 104 Bytes ] -> [ Record 1: 105 - 209 Bytes ] -> [ Record 2: 210 - 314 Bytes ]
-                                 ▲
-                                 │ file.seek(Record Index * Size) เพื่อเขียนทับข้อมูลทันที
+[ Record 0: 0 - (N-1) Bytes ] -> [ Record 1: N - (2N-1) Bytes ] -> [ Record 2: 2N - (3N-1) Bytes ]
+                                    ▲
+                                    │ file.seek(N) เพื่อเขียนทับ Record 1 ได้ทันที
+```
 
-🚀 How to Run
-1. Clone Repository
-Bash
-git clone [https://github.com/Aigus25/Project_COMPRO.git](https://github.com/Aigus25/Project_COMPRO.git)
+โดย N = ขนาด record ของไฟล์นั้นๆ (105 สำหรับ courses.dat, 107 สำหรับ students.dat, 36 สำหรับ enrollments.dat)
+
+---
+
+## 🗂️ ไฟล์ที่เกี่ยวข้อง
+
+| ไฟล์ | ประเภท | หน้าที่ |
+| :--- | :--- | :--- |
+| `main.py` | Source Code | โปรแกรมหลัก (CRUD + Report) |
+| `students.dat` | Binary Data | ข้อมูลนักศึกษา |
+| `courses.dat` | Binary Data | ข้อมูลรายวิชา |
+| `enrollments.dat` | Binary Data | ข้อมูลการลงทะเบียน |
+| `operations.log` | Text Log | ประวัติการทำงานทุกครั้ง (ใช้แสดงในรายงาน) |
+| `report.txt` | Text Report | รายงานสรุปที่สร้างจากทั้ง 3 ไฟล์ข้างต้น |
+
+---
+
+## 🚀 How to Run
+
+**Clone Private Repository**
+```bash
+git clone https://github.com/Aigus25/Project_COMPRO.git
 cd Project_COMPRO
-2. Generate Mock Data (Optional)
-หากต้องการสุ่มข้อมูลทดสอบ 60+ รายการใส่ไฟล์ไบนารี:
+```
 
-Bash
-python generate_mock_data.py
-3. Execute Application
-Bash
+**Execute Application**
+```bash
 python main.py
-4. Exit & Report Generation
-เลือกเมนู 0 ในโปรแกรม ระบบจะทำการ Flush/Sync ข้อมูล ล็อกประวัติลง operations.log และสร้างรายงานสรุป report.txt ให้อัตโนมัติ
+```
 
+**เมนูหลัก**
+```
+1) จัดการรายวิชา (Courses)
+2) จัดการนักศึกษา (Students)
+3) การลงทะเบียนเรียน (Enrollments)
+4) สร้างรายงานสรุป (Generate Report)
+0) ออกจากโปรแกรม (Exit)
+```
 
-<ElicitationsGroup message="ต้องการดำเนินการต่อในส่วนใดครับ:">
-  <Elicitation label="ให้ช่วยจัดทำสไลด์นำเสนอโครงการ (Presentation Outline)" query="ช่วยเขียนโครงร่างสไลด์นำเสนอโครงการ (Presentation Outline) สำหรับพรีเซนต์งานอาจารย์"/>
-</ElicitationsGroup>
+**Generate Report**
+เลือกเมนู `4` ในโปรแกรม ระบบจะประมวลผลข้อมูลจาก `students.dat`, `courses.dat`, `enrollments.dat` และสร้างไฟล์ `report.txt` ให้อัตโนมัติ (หรือจะเลือกเมนู `0` เพื่อออกจากโปรแกรม ระบบก็จะสร้างรายงานให้อัตโนมัติก่อนปิดเช่นกัน)
