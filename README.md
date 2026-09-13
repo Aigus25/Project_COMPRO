@@ -76,7 +76,7 @@ $$\text{Offset} = \text{Record Index} \times \text{RECORD\_SIZE}$$
                                  ▲
                                  │ file.seek(Record Index * Size) เพื่อเขียนทับข้อมูลทันที
 
-## 🚀 How to Run
+🚀 How to Run
 1. Clone Repository
 Bash
 git clone [https://github.com/Aigus25/Project_COMPRO.git](https://github.com/Aigus25/Project_COMPRO.git)
